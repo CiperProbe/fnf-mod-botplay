@@ -1,18 +1,24 @@
 local notesHitCount = 0
+local lastUpdateTime = 0
+local lastPostUpdateTime = 0
+local UPDATE_INTERVAL = 0.1
 
 function onCreate()
-    setProperty('cpuControlled', true)
-    setProperty('botplayTxt.visible', false)
-    notesHitCount = 0
-end
-
-function onCreatePost()
     setProperty('cpuControlled', true)
     setProperty('botplayTxt.visible', false)
     setProperty('ratingName', 'Sick')
     setRatingPercent(1.0)
     setProperty('accuracy', 100.0)
-    runTimer('forceSick', 0.1, 0)
+    setRatingFC('SFC')
+    notesHitCount = 0
+    lastUpdateTime = 0
+    lastPostUpdateTime = 0
+end
+
+function onCreatePost()
+    setProperty('cpuControlled', true)
+    setProperty('botplayTxt.visible', false)
+    updateScoreText()
 end
 
 function goodNoteHit(id, direction, noteType, isSustainNote)
@@ -20,23 +26,14 @@ function goodNoteHit(id, direction, noteType, isSustainNote)
         return
     end
     
-    if not getProperty('cpuControlled') then
-        setProperty('cpuControlled', true)
-    end
-    
     notesHitCount = notesHitCount + 1
-    
-    setProperty('ratingName', 'Sick')
-    setRatingPercent(1.0)
-    setRatingFC('SFC')
     
     addScore(350)
     addHits(1)
     
-    updateScoreText()
-    
-    runTimer('fixRating', 0.001, 1)
-    runTimer('forceSick', 0.1, 0)
+    if not getProperty('cpuControlled') then
+        setProperty('cpuControlled', true)
+    end
 end
 
 function onTimerCompleted(tag, loops, loopsLeft)
@@ -44,35 +41,18 @@ function onTimerCompleted(tag, loops, loopsLeft)
         setProperty('totalNotesHit', notesHitCount)
         setProperty('totalNotesMissed', 0)
         setProperty('totalPlayed', notesHitCount)
-        setProperty('ratingName', 'Sick')
-        setRatingPercent(1.0)
-    end
-    if tag == 'forceSick' then
-        setProperty('ratingName', 'Sick')
-        setRatingPercent(1.0)
-        setProperty('accuracy', 100.0)
     end
 end
 
 function noteMissPress(direction)
     addMisses(1)
     setProperty('songMisses', getProperty('songMisses') + 1)
-    updateScoreText()
-    
-    setRatingPercent(1.0)
-    setProperty('accuracy', 100.0)
-    setProperty('ratingName', 'Sick')
     setProperty('cpuControlled', true)
 end
 
 function noteMiss(id, direction, noteType, isSustainNote)
     addMisses(1)
     setProperty('songMisses', getProperty('songMisses') + 1)
-    updateScoreText()
-    
-    setRatingPercent(1.0)
-    setProperty('accuracy', 100.0)
-    setProperty('ratingName', 'Sick')
     setProperty('cpuControlled', true)
 end
 
@@ -82,58 +62,39 @@ function opponentNoteHit(id, direction, noteType, isSustainNote)
 end
 
 function onUpdate(elapsed)
-    setProperty('ratingName', 'Sick')
-    setRatingPercent(1.0)
-    setProperty('accuracy', 100.0)
-    setProperty('cpuControlled', true)
-    setProperty('botplayTxt.visible', false)
+    lastUpdateTime = lastUpdateTime + elapsed
+    
+    if lastUpdateTime >= UPDATE_INTERVAL then
+        setProperty('cpuControlled', true)
+        setProperty('botplayTxt.visible', false)
+        
+        lastUpdateTime = 0
+    end
 end
 
 function onUpdatePost(elapsed)
-    setProperty('ratingName', 'Sick')
-    setRatingPercent(1.0)
+    lastPostUpdateTime = lastPostUpdateTime + elapsed
     
-    local expectedTotal = notesHitCount * 1.0
-    local currentTotal = getProperty('totalNotesHit')
-    
-    if currentTotal ~= expectedTotal and notesHitCount > 0 then
-        setProperty('totalNotesHit', expectedTotal)
-    end
-    
-    setProperty('totalNotesMissed', 0)
-    setProperty('totalPlayed', notesHitCount)
-    
-    setProperty('accuracy', 100.0)
-    setProperty('ratingPercent', 1.0)
-    
-    if getProperty('songMisses') == 0 then
+    if lastPostUpdateTime >= UPDATE_INTERVAL then
+        local expectedTotal = notesHitCount * 1.0
+        local currentTotal = getProperty('totalNotesHit')
+        
+        if currentTotal ~= expectedTotal and notesHitCount > 0 then
+            setProperty('totalNotesHit', expectedTotal)
+        end
+        
+        setProperty('totalNotesMissed', 0)
+        setProperty('totalPlayed', notesHitCount)
+        setProperty('ratingName', 'Sick')
+        setRatingPercent(1.0)
+        setProperty('accuracy', 100.0)
         setRatingFC('SFC')
-    else
-        setRatingFC('FC')
-    end
-    updateScoreText()
-    
-    setProperty('cpuControlled', true)
-    setProperty('botplayTxt.visible', false)
-    
-    if getHealth() < 2 then
-        setHealth(2)
+        updateScoreText()
+        
+        lastPostUpdateTime = 0
     end
 end
 
-function onStepHit()
-    setProperty('ratingName', 'Sick')
-    setRatingPercent(1.0)
-    setProperty('accuracy', 100.0)
-    setProperty('cpuControlled', true)
-end
-
-function onBeatHit()
-    setProperty('ratingName', 'Sick')
-    setRatingPercent(1.0)
-    setProperty('accuracy', 100.0)
-    setProperty('cpuControlled', true)
-end
 
 function onCountdownTick(counter)
     setProperty('cpuControlled', true)
@@ -167,14 +128,8 @@ function onDestroy()
 end
 
 function onRecalculateRating()
-    setProperty('ratingName', 'Sick')
-    setRatingPercent(1.0)
-    setProperty('accuracy', 100.0)
     return Function_Continue
 end
 
 function onRatingUpdate()
-    setProperty('ratingName', 'Sick')
-    setRatingPercent(1.0)
-    setProperty('accuracy', 100.0)
 end
